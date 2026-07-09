@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#F7F6F3">
+<title>Lift Log</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F6F3;
+    --surface: #FFFFFF;
+    --surface2: #F0EEE9;
+    --border: #E4E1D9;
+    --text: #1C1B18;
+    --text-muted: #8A8680;
+    --accent: #6B8F71;
+    --accent-light: #EAF0EB;
+    --accent2: #8B7355;
+    --accent2-light: #F2EDE6;
+    --accent3: #7A6A8A;
+    --accent3-light: #EFEAF3;
+    --danger: #C0392B;
+    --radius: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+    --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 110px;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 20px 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .app-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .app-title span { color: var(--accent); }
+
+  .session-date {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .progress-pill {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    transition: all 0.3s;
+  }
+
+  .progress-pill.complete {
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+
+  .tabs {
+    display: flex;
+    gap: 6px;
+    padding-top: 12px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 9px 4px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-family: var(--font);
+  }
+
+  .tab.active-upper { background: var(--accent-light); color: var(--accent); }
+  .tab.active-lowerA { background: var(--accent2-light); color: var(--accent2); }
+  .tab.active-lowerB { background: var(--accent3-light); color: var(--accent3); }
+
+  .content { padding: 16px 16px 0; }
+
+  .day-subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    padding: 0 4px;
+  }
+
+  /* EXERCISE CARD */
+  .exercise-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: opacity 0.3s;
+  }
+
+  .exercise-card.done-card { opacity: 0.55; }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 14px;
+  }
+
+  .check-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: transparent;
+    transition: all 0.2s;
+    padding: 0;
+  }
+
+  .upper .check-btn.checked { background: var(--accent); border-color: var(--accent); color: white; }
+  .lowerA .check-btn.checked { background: var(--accent2); border-color: var(--accent2); color: white; }
+  .lowerB .check-btn.checked { background: var(--accent3); border-color: var(--accent3); color: white; }
+
+  .name-block { flex: 1; min-width: 0; }
+
+  .exercise-name {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+
+  .exercise-scheme {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .exercise-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 7px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+  }
+
+  .tag-compound { background: #E8F4FD; color: #2980B9; }
+  .tag-isolation { background: #FEF9E7; color: #D4AC0D; }
+  .tag-core { background: #FDEDEC; color: #C0392B; }
+  .tag-optional { background: var(--surface2); color: var(--text-muted); }
+
+  .card-body {
+    padding: 0 14px 14px;
+    border-top: 1px solid var(--border);
+  }
+
+  .weight-section { padding-top: 12px; }
+
+  .last-weight {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .last-weight strong { color: var(--text); font-size: 14px; }
+
+  .trend { font-weight: 700; font-size: 12px; }
+  .trend.up { color: var(--accent); }
+  .trend.down { color: var(--danger); }
+
+  .weight-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .weight-input {
+    flex: 1;
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .weight-input:focus { border-color: var(--accent); }
+
+  .weight-unit {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  .log-btn {
+    padding: 11px 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    font-family: var(--font);
+    color: white;
+  }
+
+  .upper .log-btn { background: var(--accent); }
+  .lowerA .log-btn { background: var(--accent2); }
+  .lowerB .log-btn { background: var(--accent3); }
+  .log-btn:active { transform: scale(0.97); }
+
+  .action-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .action-btn {
+    flex: 1;
+    padding: 8px 6px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    font-family: var(--font);
+  }
+
+  .action-btn:active { background: var(--surface2); }
+
+  .panel {
+    margin-top: 10px;
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+  }
+
+  .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+
+  .panel-title:not(:first-child) { margin-top: 12px; }
+
+  .panel-empty {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .history-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .history-entry:last-child { border-bottom: none; }
+  .history-date { color: var(--text-muted); }
+  .history-weight { font-weight: 700; }
+
+  .history-delete {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  .info-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .notes-area {
+    width: 100%;
+    min-height: 70px;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: var(--font);
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  .notes-area:focus { border-color: var(--accent); }
+
+  .notes-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  .notes-saved { color: var(--accent); font-weight: 600; }
+
+  .has-note-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-left: 4px;
+    vertical-align: middle;
+  }
+
+  /* REST TIMER */
+  .timer-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 200;
+    box-shadow: 0 -2px 16px rgba(0,0,0,0.08);
+  }
+
+  .timer-display {
+    font-size: 26px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    min-width: 78px;
+    letter-spacing: 0.5px;
+  }
+
+  .timer-display.running { color: var(--accent); }
+  .timer-display.finished { color: var(--danger); }
+
+  .timer-label {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .timer-btn {
+    padding: 12px 22px;
+    border: none;
+    border-radius: 24px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    background: var(--accent);
+    color: white;
+    font-family: var(--font);
+    transition: all 0.15s;
+  }
+
+  .timer-btn:active { transform: scale(0.96); }
+  .timer-btn.stop { background: var(--surface2); color: var(--text); }
+
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--text);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 999;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+    opacity: 0.95;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <div class="app-title">Lift<span>Log</span></div>
+      <div class="session-date" id="sessionDate"></div>
+    </div>
+    <div class="progress-pill" id="progressPill"></div>
+  </div>
+  <div class="tabs">
+    <button class="tab" id="tab_upper" onclick="switchTab('upper')">💪 Upper</button>
+    <button class="tab" id="tab_lowerA" onclick="switchTab('lowerA')">🦵 Lower A</button>
+    <button class="tab" id="tab_lowerB" onclick="switchTab('lowerB')">🦵 Lower B</button>
+  </div>
+</header>
+
+<div class="content" id="mainContent"></div>
+
+<div class="timer-bar">
+  <div class="timer-display" id="timerDisplay">1:30</div>
+  <div class="timer-label">Rest timer · vibrates when done</div>
+  <button class="timer-btn" id="timerBtn" onclick="toggleTimer()">Start</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============ EXERCISE DATA ============
+const DAY_INFO = {
+  upper: { label: 'Upper — Mon & Thu · ~50 min', cls: 'upper' },
+  lowerA: { label: 'Lower A — Tue · glutes, calves + cable crunch', cls: 'lowerA' },
+  lowerB: { label: 'Lower B — Fri · glutes, calves + anti-extension core', cls: 'lowerB' }
+};
+
+const EXERCISES = {
+  upper: [
+    {
+      id: 'cable_chest_press', name: 'Chest Press', scheme: '3 × 8–12', tag: 'compound',
+      form: 'Machine or cable. Set handles at mid-chest height. Keep your chest up and shoulder blades gently pulled back and down throughout. Press forward in a controlled arc without letting the elbows flare past 90°. Squeeze at full extension, return slowly.',
+      tips: 'Your main push movement — do it first while fresh. The slow return (eccentric) phase drives much of the growth. If you feel it in the front of your shoulders rather than your chest, check that your shoulder blades are staying back.',
+      variations: 'Single-arm cable press (balance), incline angle (upper chest), machine press (most stable when fatigued).'
+    },
+    {
+      id: 'lat_pulldown', name: 'Lat Pulldown', scheme: '3 × 8–12', tag: 'compound',
+      form: 'Grip slightly wider than shoulder-width, overhand. Sit tall, chest up. Initiate by pulling your shoulder blades down before bending the elbows. Pull the bar to your upper chest, elbows tracking toward your hips. Return slowly to a full stretch at the top.',
+      tips: 'Think "elbows to hips," not "hands to chest." Avoid excessive backward lean — that turns it into a row. The full stretch at the top is where a lot of the stimulus lives.',
+      variations: 'Close-grip (more bicep), neutral grip (easier on wrists and shoulders), single-arm (greater range of motion).'
+    },
+    {
+      id: 'seated_cable_row', name: 'Seated Cable Row', scheme: '3 × 8–12', tag: 'compound',
+      form: 'Sit upright, neutral spine — do not round the lower back. Pull the handle to your lower sternum, elbows close to your body. Squeeze your shoulder blades together at the end. Return with control to a full stretch without rounding forward.',
+      tips: 'If a chest-supported row machine is available, prefer it — the supported torso removes lower-back load, which matters given your back sensitivity. Keep torso swing minimal either way.',
+      variations: 'Chest-supported row (back-friendly — preferred), wide grip (upper back/rear delts), single-arm (range of motion).'
+    },
+    {
+      id: 'db_shoulder_press_neutral', name: 'Neutral-Grip DB Shoulder Press', scheme: '3 × 8–12', tag: 'compound',
+      form: 'Sit on a bench with back support. Hold dumbbells at shoulder height with palms facing each other (neutral grip). Press up and slightly inward until arms are extended — no hard lockout. Lower slowly to shoulder height. Keep ribs down and core braced; do not arch the lower back.',
+      tips: 'The neutral grip reduces stress on the shoulder joint compared to a palms-forward press — that is exactly why it is in your program. If any shoulder pain appears, reduce the range (stop the descent a little higher) before reducing the weight.',
+      variations: 'Machine shoulder press (most stable), Arnold press (only if pain-free), single-arm press (core challenge).'
+    },
+    {
+      id: 'cable_lateral_raise', name: 'Cable Lateral Raise', scheme: '3 × 12–15', tag: 'isolation',
+      form: 'Stand next to the cable column, handle in the far hand, slight lean away from the machine. With a fixed slight bend in the elbow, raise your arm out to the side to shoulder height — no higher. Lead with the elbow. Lower slowly.',
+      tips: 'The cable gives constant tension through the whole range — unlike dumbbells, which are easy at the bottom. The slight lean increases tension in the stretched position. Light weight, strict form; no swinging.',
+      variations: 'Behind-the-back cable path (more stretch), dumbbell lateral raise, leaning DB raise.'
+    },
+    {
+      id: 'overhead_cable_triceps', name: 'Overhead Cable Triceps Extension', scheme: '3 × 10–12', tag: 'isolation',
+      form: 'Face away from a low or mid pulley, rope in both hands behind your head, elbows pointing forward-up. Step forward into a split stance and lean slightly forward. Extend your arms fully overhead, then lower slowly until you feel a deep stretch in the triceps.',
+      tips: 'The overhead position stretches the long head of the triceps — the biggest of the three heads — and training a muscle at long lengths is one of the best-supported recent findings for growth. Keep your elbows from flaring outward.',
+      variations: 'Single-arm overhead extension, seated DB overhead extension, incline-bench cable extension.'
+    },
+    {
+      id: 'tricep_pushdown', name: 'Triceps Pushdown', scheme: '2 × 10–12', tag: 'isolation',
+      form: 'Stand close to a high pulley, elbows pinned at your sides. Push the bar or rope down to full extension, squeeze, then return slowly — stopping before your elbows drift forward.',
+      tips: 'Second triceps slot, after the overhead work has done the heavy lifting. The main error is letting the elbows travel up and forward — keep them fixed. With a rope, spread it apart at the bottom.',
+      variations: 'Rope (natural wrist rotation), straight bar (slightly heavier loads), single-arm (isolation).'
+    },
+    {
+      id: 'bicep_curl', name: 'Curls (Optional)', scheme: '2 sets — only if time allows', tag: 'optional',
+      form: 'Elbows fixed at your sides. Curl to shoulder height with full wrist rotation at the top, then lower slowly to full extension.',
+      tips: 'Your rows and pulldowns already give the biceps meaningful indirect work — this slot is a bonus, not a requirement. Skip it freely on tight days.',
+      variations: 'Hammer curl (brachialis/forearms), incline DB curl (stretch emphasis), cable curl (constant tension).'
+    }
+  ],
+  lowerA: [
+    {
+      id: 'hip_thrust', name: 'Hip Thrust', scheme: '4 × 8–12', tag: 'compound',
+      form: 'Upper back on a bench edge, bar or pad across the hips, feet flat and hip-width. Drive through the heels to full hip extension. At the top: tuck your pelvis slightly under (posterior pelvic tilt) and keep your ribs down — squeeze the glutes hard. Lower with control.',
+      tips: 'The pelvic-tilt cue at lockout matters doubly for you: it maximizes glute contraction AND prevents the lower-back arching that is a common hidden back irritant in hip thrusts. If your back ever feels it, you are extending through the spine instead of the hips.',
+      variations: 'Single-leg (imbalances), banded (extra top-range resistance), feet elevated (more range).'
+    },
+    {
+      id: 'back_extension_45', name: '45° Back Extension (Glute Focus)', scheme: '3 × 10–15', tag: 'compound',
+      form: 'Set the pad at upper-thigh height so your hips can hinge freely. Round your upper back slightly, tuck your chin, and hold weight at your chest if needed. Lower by hinging at the hips, then squeeze the glutes to come up — stop when your body is in line, do NOT hyperextend past straight.',
+      tips: 'This replaces the RDL: nearly the same glute and hamstring stimulus, but with your torso supported so the lower back is spared. The slightly rounded upper back and tucked chin shift the work from the spinal muscles to the glutes. If it still bothers your back, swap to glute kickbacks.',
+      variations: 'Glute kickback machine (back-up option), single-leg back extension, banded version.'
+    },
+    {
+      id: 'leg_press_wide', name: 'Leg Press — Feet High & Wide', scheme: '3 × 8–12', tag: 'compound',
+      form: 'Place your feet HIGH on the platform and WIDER than shoulder-width, toes slightly out. Lower until knees reach about 90° — keep your lower back glued to the seat. Press through your heels; stop just short of lockout.',
+      tips: 'The high-wide foot placement shifts the load toward your glutes and hamstrings and reduces the shear force on your knees — this is your knee-friendly quad-and-glute slot on day A. Work strictly within pain-free range; less depth is fine.',
+      variations: 'Reduce depth if knees complain; single-leg press (imbalances).'
+    },
+    {
+      id: 'seated_ham_curl', name: 'Seated Hamstring Curl', scheme: '3 × 10–12', tag: 'isolation',
+      form: 'Sit with the back pad snug and the roller just above your heels. Curl the weight down and under through a full range, squeeze, then return slowly — resist on the way back.',
+      tips: 'Seated beats lying for hamstring growth: sitting flexes the hips, which stretches the hamstrings so they work at longer muscle lengths — and long-length training is one of the strongest recent findings in hypertrophy research (Maeo et al.).',
+      variations: 'Lying curl (if seated unavailable), single-leg, Nordic curl (advanced).'
+    },
+    {
+      id: 'hip_abductor', name: 'Hip Abduction', scheme: '3 × 12–15', tag: 'isolation',
+      form: 'Sit upright and push your legs outward against the pads through a full range. Pause briefly at the widest point, return slowly. Leaning the torso slightly forward biases the upper glute fibers more.',
+      tips: 'This targets the gluteus medius — the "upper glute" — which shapes the upper-side of the glutes and stabilizes the hips. Day A only in the new program. Moderate weight, controlled reps, higher rep range.',
+      variations: 'Cable standing abduction, banded side steps, banded seated abduction.'
+    },
+    {
+      id: 'calf_raise', name: 'Standing Calf Raise', scheme: '4 × 10–12 · 2s pause in stretch', tag: 'isolation',
+      form: 'Stand on a step edge, heels hanging off. Lower into a DEEP stretch and hold it for a full 2 seconds — this pause is the heart of the exercise. Then rise as high as possible and squeeze at the top.',
+      tips: 'The 2-second pause in the stretched position is deliberate: recent evidence consistently shows the lengthened position drives most calf growth. A bouncy, short rep does almost nothing. Fewer, deeper, slower reps beat more shallow ones.',
+      variations: 'Leg-press calf raise, single-leg (harder + range), donkey calf raise.'
+    },
+    {
+      id: 'seated_calf_raise', name: 'Seated Calf Raise', scheme: '3 × 12–15', tag: 'isolation',
+      form: 'Sit with the pad on your lower thighs, balls of feet on the platform. Lower into a full stretch, pause briefly, then press up onto your toes and squeeze.',
+      tips: 'The bent knee shifts the work from the gastrocnemius to the soleus — the deep calf muscle that the standing raise largely misses. Together the two exercises cover the whole calf, which is why both are in your program.',
+      variations: 'Slow tempo (3s down), single-leg, pause reps.'
+    },
+    {
+      id: 'cable_crunch', name: 'Cable Crunch', scheme: '3 × 10–15', tag: 'core',
+      form: 'Kneel facing a high pulley, rope held at the sides of your head. Crunch DOWN by flexing your spine — bring your ribs toward your pelvis — not by pulling with your arms or hinging at the hips. Return slowly to a tall kneel with a slight ab stretch.',
+      tips: 'This is loaded, progressable ab work — treat it like any other lift and add weight over time. The movement is small and spinal, not a bow at the hips; if your hip creases fold, you are hinging instead of crunching.',
+      variations: 'Standing cable crunch, machine crunch, weighted decline crunch.'
+    }
+  ],
+  lowerB: [
+    {
+      id: 'hip_thrust', name: 'Hip Thrust', scheme: '4 × 8–12', tag: 'compound',
+      form: 'Upper back on a bench edge, bar or pad across the hips, feet flat and hip-width. Drive through the heels to full hip extension. At the top: tuck your pelvis slightly under (posterior pelvic tilt) and keep your ribs down — squeeze the glutes hard. Lower with control.',
+      tips: 'The pelvic-tilt cue at lockout matters doubly for you: it maximizes glute contraction AND prevents the lower-back arching that is a common hidden back irritant in hip thrusts. If your back ever feels it, you are extending through the spine instead of the hips.',
+      variations: 'Single-leg (imbalances), banded (extra top-range resistance), feet elevated (more range).'
+    },
+    {
+      id: 'back_extension_45', name: '45° Back Extension (Glute Focus)', scheme: '3 × 10–15', tag: 'compound',
+      form: 'Set the pad at upper-thigh height so your hips can hinge freely. Round your upper back slightly, tuck your chin, and hold weight at your chest if needed. Lower by hinging at the hips, then squeeze the glutes to come up — stop when your body is in line, do NOT hyperextend past straight.',
+      tips: 'This replaces the RDL: nearly the same glute and hamstring stimulus, but with your torso supported so the lower back is spared. The slightly rounded upper back and tucked chin shift the work from the spinal muscles to the glutes. If it still bothers your back, swap to glute kickbacks.',
+      variations: 'Glute kickback machine (back-up option), single-leg back extension, banded version.'
+    },
+    {
+      id: 'leg_press_moderate', name: 'Leg Press — Moderate Stance', scheme: '3 × 8–12', tag: 'compound',
+      form: 'Feet at shoulder-width, placed at mid-platform height, toes slightly out. Lower to about 90° at the knees — lower back stays glued to the seat. Press through the full foot; stop just short of lockout.',
+      tips: 'The moderate stance on day B gives your quads more direct work than the high-wide stance of day A — this keeps weekly quad volume adequate without the leg extension that triggered your knee. Pain-free range only: if your knees complain, reduce depth first, weight second.',
+      variations: 'Slightly higher feet if knees are cranky that day; single-leg press.'
+    },
+    {
+      id: 'seated_ham_curl', name: 'Seated Hamstring Curl', scheme: '3 × 10–12', tag: 'isolation',
+      form: 'Sit with the back pad snug and the roller just above your heels. Curl the weight down and under through a full range, squeeze, then return slowly — resist on the way back.',
+      tips: 'Seated beats lying for hamstring growth: sitting flexes the hips, which stretches the hamstrings so they work at longer muscle lengths — and long-length training is one of the strongest recent findings in hypertrophy research (Maeo et al.).',
+      variations: 'Lying curl (if seated unavailable), single-leg, Nordic curl (advanced).'
+    },
+    {
+      id: 'calf_raise', name: 'Standing Calf Raise', scheme: '4 × 10–12 · 2s pause in stretch', tag: 'isolation',
+      form: 'Stand on a step edge, heels hanging off. Lower into a DEEP stretch and hold it for a full 2 seconds — this pause is the heart of the exercise. Then rise as high as possible and squeeze at the top.',
+      tips: 'The 2-second pause in the stretched position is deliberate: recent evidence consistently shows the lengthened position drives most calf growth. A bouncy, short rep does almost nothing. Fewer, deeper, slower reps beat more shallow ones.',
+      variations: 'Leg-press calf raise, single-leg (harder + range), donkey calf raise.'
+    },
+    {
+      id: 'seated_calf_raise', name: 'Seated Calf Raise', scheme: '3 × 12–15', tag: 'isolation',
+      form: 'Sit with the pad on your lower thighs, balls of feet on the platform. Lower into a full stretch, pause briefly, then press up onto your toes and squeeze.',
+      tips: 'The bent knee shifts the work from the gastrocnemius to the soleus — the deep calf muscle that the standing raise largely misses. Together the two exercises cover the whole calf, which is why both are in your program.',
+      variations: 'Slow tempo (3s down), single-leg, pause reps.'
+    },
+    {
+      id: 'anti_extension_core', name: 'Dead Bug / Pallof Press', scheme: '3 × 8–10 per side', tag: 'core',
+      form: 'Dead bug: lie on your back, arms up, knees at 90°. Press your lower back INTO the floor and keep it there while you slowly extend the opposite arm and leg away, then return. Pallof press: stand side-on to a cable at chest height, press the handle straight out and resist the pull toward the machine — hold, return.',
+      tips: 'Both are anti-extension/anti-rotation work: the core\'s job here is to PREVENT movement, not create it. This style of core training tends to help lower-back complaints rather than aggravate them — which is why it is in your program instead of sit-ups. The moment your lower back peels off the floor in the dead bug, shorten the movement.',
+      variations: 'Pallof press with a band, bird dog, stir-the-pot on a stability ball.'
+    }
+  ]
+};
+
+// ============ STATE ============
+let currentTab = 'upper';
+let openPanel = {}; // exerciseKey -> 'history' | 'info' | 'notes' | null
+
+// ============ STORAGE ============
+function getStore(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
+  catch { return fallback; }
+}
+function setStore(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+// weights: liftlog_v2  { exerciseId: [{date, weight}, ...] }
+// notes:   liftlog_notes { exerciseId: "text" }
+// checks:  liftlog_checks { date: 'YYYY-MM-DD', done: { tab_exId: true } }
+
+function getWeights() { return getStore('liftlog_v2', {}); }
+function getNotes() { return getStore('liftlog_notes', {}); }
+
+function getChecks() {
+  const c = getStore('liftlog_checks', { date: '', done: {} });
+  if (c.date !== todayString()) return { date: todayString(), done: {} };
+  return c;
+}
+
+function todayString() { return new Date().toISOString().split('T')[0]; }
+
+function formatDate(iso) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// ============ ACTIONS ============
+function switchTab(tab) {
+  currentTab = tab;
+  openPanel = {};
+  render();
+}
+
+function checkKey(exId) { return currentTab + '_' + exId; }
+
+function toggleCheck(exId) {
+  const c = getChecks();
+  const k = checkKey(exId);
+  c.done[k] = !c.done[k];
+  setStore('liftlog_checks', c);
+  render();
+}
+
+function logWeight(exId) {
+  const input = document.getElementById('input_' + exId);
+  const val = parseFloat(input.value);
+  if (isNaN(val) || val <= 0) { showToast('Enter a valid weight'); return; }
+
+  const data = getWeights();
+  if (!data[exId]) data[exId] = [];
+  const today = todayString();
+  const idx = data[exId].findIndex(e => e.date === today);
+  if (idx >= 0) data[exId][idx] = { date: today, weight: val };
+  else data[exId].unshift({ date: today, weight: val });
+
+  setStore('liftlog_v2', data);
+  input.value = '';
+  showToast('Logged ' + val + ' kg ✓');
+  render();
+}
+
+function deleteEntry(exId, date) {
+  const data = getWeights();
+  if (!data[exId]) return;
+  data[exId] = data[exId].filter(e => e.date !== date);
+  setStore('liftlog_v2', data);
+  render();
+}
+
+function togglePanel(exId, panel) {
+  openPanel[exId] = openPanel[exId] === panel ? null : panel;
+  render();
+  if (panel === 'notes' && openPanel[exId] === 'notes') {
+    setTimeout(() => {
+      const ta = document.getElementById('notes_' + exId);
+      if (ta) ta.focus();
+    }, 50);
+  }
+}
+
+let noteSaveTimers = {};
+function onNoteInput(exId) {
+  clearTimeout(noteSaveTimers[exId]);
+  noteSaveTimers[exId] = setTimeout(() => {
+    const ta = document.getElementById('notes_' + exId);
+    if (!ta) return;
+    const notes = getNotes();
+    notes[exId] = ta.value;
+    setStore('liftlog_notes', notes);
+    const hint = document.getElementById('noteHint_' + exId);
+    if (hint) hint.innerHTML = '<span class="notes-saved">Saved ✓</span>';
+  }, 600);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ============ TIMER ============
+const REST_SECONDS = 90;
+let timerInterval = null;
+let timerRemaining = REST_SECONDS;
+let audioCtx = null;
+
+function fmtTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m + ':' + String(sec).padStart(2, '0');
+}
+
+function toggleTimer() {
+  if (timerInterval) { stopTimer(true); return; }
+  // create audio context on user gesture so the beep is allowed
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+  } catch (e) {}
+
+  timerRemaining = REST_SECONDS;
+  updateTimerUI(true);
+  document.getElementById('timerBtn').textContent = 'Stop';
+  document.getElementById('timerBtn').classList.add('stop');
+
+  timerInterval = setInterval(() => {
+    timerRemaining--;
+    if (timerRemaining <= 0) {
+      finishTimer();
+    } else {
+      updateTimerUI(true);
+    }
+  }, 1000);
+}
+
+function stopTimer(resetDisplay) {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  timerRemaining = REST_SECONDS;
+  const btn = document.getElementById('timerBtn');
+  btn.textContent = 'Start';
+  btn.classList.remove('stop');
+  if (resetDisplay) updateTimerUI(false);
+}
+
+function finishTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  timerRemaining = 0;
+
+  // vibrate: three strong pulses
+  if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 600]);
+
+  // audio beep fallback/addition
+  try {
+    if (audioCtx) {
+      for (let i = 0; i < 3; i++) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.frequency.value = 880;
+        gain.gain.value = 0.25;
+        const t0 = audioCtx.currentTime + i * 0.35;
+        osc.start(t0); osc.stop(t0 + 0.2);
+      }
+    }
+  } catch (e) {}
+
+  const disp = document.getElementById('timerDisplay');
+  disp.textContent = 'GO!';
+  disp.className = 'timer-display finished';
+  showToast('Rest over — next set! 💪');
+
+  const btn = document.getElementById('timerBtn');
+  btn.textContent = 'Start';
+  btn.classList.remove('stop');
+
+  setTimeout(() => {
+    timerRemaining = REST_SECONDS;
+    updateTimerUI(false);
+  }, 2500);
+}
+
+function updateTimerUI(running) {
+  const disp = document.getElementById('timerDisplay');
+  disp.textContent = fmtTime(timerRemaining);
+  disp.className = 'timer-display' + (running ? ' running' : '');
+}
+
+// ============ RENDER ============
+function trendMarkup(entries) {
+  if (!entries || entries.length < 2) return '';
+  const diff = entries[0].weight - entries[1].weight;
+  if (diff > 0) return ' <span class="trend up">▲ +' + (Math.round(diff * 10) / 10) + '</span>';
+  if (diff < 0) return ' <span class="trend down">▼ ' + (Math.round(diff * 10) / 10) + '</span>';
+  return '';
+}
+
+function render() {
+  // tabs
+  ['upper', 'lowerA', 'lowerB'].forEach(t => {
+    document.getElementById('tab_' + t).className = 'tab' + (t === currentTab ? ' active-' + t : '');
+  });
+
+  const exercises = EXERCISES[currentTab];
+  const cls = DAY_INFO[currentTab].cls;
+  const weights = getWeights();
+  const notes = getNotes();
+  const checks = getChecks();
+
+  let doneCount = 0;
+  let html = '<div class="day-subtitle">' + DAY_INFO[currentTab].label + '</div>';
+
+  exercises.forEach((ex, i) => {
+    const entries = weights[ex.id] || [];
+    const last = entries[0] || null;
+    const note = notes[ex.id] || '';
+    const isDone = !!checks.done[checkKey(ex.id)];
+    if (isDone) doneCount++;
+    const panel = openPanel[ex.id] || null;
+
+    const tagMap = { compound: ['Compound', 'tag-compound'], isolation: ['Isolation', 'tag-isolation'], core: ['Core', 'tag-core'], optional: ['Optional', 'tag-optional'] };
+    const [tagLabel, tagClass] = tagMap[ex.tag];
+
+    html += `
+    <div class="exercise-card ${cls}${isDone ? ' done-card' : ''}">
+      <div class="card-header">
+        <button class="check-btn${isDone ? ' checked' : ''}" onclick="toggleCheck('${ex.id}')" aria-label="Mark done">✓</button>
+        <div class="name-block">
+          <div class="exercise-name">${i + 1}. ${ex.name}${note ? '<span class="has-note-dot"></span>' : ''}</div>
+          <div class="exercise-scheme">${ex.scheme}</div>
+        </div>
+        <span class="exercise-tag ${tagClass}">${tagLabel}</span>
+      </div>
+      <div class="card-body">
+        <div class="weight-section">
+          <div class="last-weight">
+            ${last
+              ? 'Last: <strong>' + last.weight + ' kg</strong>' + trendMarkup(entries) + ' <span>(' + formatDate(last.date) + ')</span>'
+              : '<span style="font-style:italic">No weight logged yet</span>'}
+          </div>
+          <div class="weight-input-row">
+            <input class="weight-input" id="input_${ex.id}" type="number" inputmode="decimal" step="0.5" min="0"
+              placeholder="Weight today..." onkeydown="if(event.key==='Enter') logWeight('${ex.id}')" />
+            <span class="weight-unit">kg</span>
+            <button class="log-btn" onclick="logWeight('${ex.id}')">Log</button>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button class="action-btn" onclick="togglePanel('${ex.id}','history')">📋 History${entries.length ? ' (' + entries.length + ')' : ''}</button>
+          <button class="action-btn" onclick="togglePanel('${ex.id}','info')">ℹ️ Form & Info</button>
+          <button class="action-btn" onclick="togglePanel('${ex.id}','notes')">📝 Notes</button>
+        </div>
+
+        ${panel === 'history' ? `
+        <div class="panel">
+          <div class="panel-title">Weight History</div>
+          ${entries.length === 0 ? '<div class="panel-empty">No entries yet.</div>'
+            : entries.map(e => `
+              <div class="history-entry">
+                <span class="history-date">${formatDate(e.date)}</span>
+                <span class="history-weight">${e.weight} kg</span>
+                <button class="history-delete" onclick="deleteEntry('${ex.id}','${e.date}')" title="Delete">×</button>
+              </div>`).join('')}
+        </div>` : ''}
+
+        ${panel === 'info' ? `
+        <div class="panel">
+          <div class="panel-title">Form Cues</div>
+          <div class="info-text">${ex.form}</div>
+          <div class="panel-title">Tips</div>
+          <div class="info-text">${ex.tips}</div>
+          <div class="panel-title">Variations</div>
+          <div class="info-text">${ex.variations}</div>
+        </div>` : ''}
+
+        ${panel === 'notes' ? `
+        <div class="panel">
+          <div class="panel-title">My Notes</div>
+          <textarea class="notes-area" id="notes_${ex.id}" placeholder="e.g. seat position 4, grip felt better narrow..."
+            oninput="onNoteInput('${ex.id}')">${note.replace(/</g, '&lt;')}</textarea>
+          <div class="notes-hint" id="noteHint_${ex.id}">Saves automatically as you type</div>
+        </div>` : ''}
+      </div>
+    </div>`;
+  });
+
+  document.getElementById('mainContent').innerHTML = html;
+
+  // progress pill
+  const pill = document.getElementById('progressPill');
+  pill.textContent = doneCount + '/' + exercises.length + ' done';
+  pill.className = 'progress-pill' + (doneCount === exercises.length ? ' complete' : '');
+
+  document.getElementById('sessionDate').textContent =
+    new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+render();
+</script>
+</body>
+</html>
